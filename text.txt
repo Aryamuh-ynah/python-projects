@@ -1,0 +1,1 @@
+I want to create an app that locks my phone automatically at a specified time. During the lock period, I won't be able to access my phone until the time is up. However, I will still be able to receive calls and make emergency calls. Please provide me with a roadmap and a suggested tech stack to develop this kind of app.

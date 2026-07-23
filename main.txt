@@ -1,0 +1,1 @@
+I want to create an app that locks my phone automatically at a specified time. Here’s a curated list of impressive, large-scale Python projects that will significantly strengthen your portfolio. These are chosen for their complexity, real-world relevance, and ability to showcase advanced skills.
