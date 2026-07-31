@@ -14,5 +14,5 @@ data = input("Enter the data or link to generate QR code: ")
 
 q.add_data(data)
 q.make(fit=True)
-img = q.make_image(fill_color="red", back_color="white")
+img = q.make_image(fill_color="red", back_color="black")
 img.save("colored_qrcode.png")
