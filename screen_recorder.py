@@ -35,35 +35,36 @@
 ##################----Ubuntu----#################
 
 import cv2
-import pyautogui
 import numpy as np
 import time
+from mss import mss
 
-# Get screen size (works on Windows, Linux, macOS)
-width, height = pyautogui.size()
+# Screen size
+with mss() as sct:
+    monitor = sct.monitors[1]  # Primary monitor
+    width = monitor["width"]
+    height = monitor["height"]
+
 dim = (width, height)
 
-# Create VideoWriter
-fourcc = cv2.VideoWriter_fourcc(*'mp4v')   # Better for .mp4
+fourcc = cv2.VideoWriter_fourcc(*'mp4v')
 output = cv2.VideoWriter("/home/humayra/test.mp4", fourcc, 20.0, dim)
 
-duration = 10   # seconds
+duration = 10  # seconds
 end_time = time.time() + duration
 
 print("Recording started...")
 
-while True:
-    # Take screenshot
-    img = pyautogui.screenshot()
-    frame = np.array(img)
-
-    # Convert RGB → BGR (important!)
-    frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-
-    output.write(frame)
-
-    if time.time() > end_time:
-        break
+with mss() as sct:
+    while time.time() < end_time:
+        # Capture screen
+        img = sct.grab(monitor)
+        
+        # Convert to numpy array (BGRA → BGR)
+        frame = np.array(img)
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGRA2BGR)
+        
+        output.write(frame)
 
 output.release()
-print("Recording finished. Video saved as test.mp4")
+print("Recording finished → test.mp4")
