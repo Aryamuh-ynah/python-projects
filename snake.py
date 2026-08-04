@@ -1,4 +1,5 @@
 import pygame
+from pygame.locals import *
 import random
 import time
 
@@ -9,8 +10,8 @@ grey = (200, 200, 200)
 green = (0, 255, 0)
 yellow = (255, 255, 0)
 
-win_width = 600
-win_height = 400
+win_width = 900
+win_height = 600
 
 window = pygame.display.set_mode((win_width, win_height))
 # time.sleep(5)
@@ -19,6 +20,8 @@ pygame.display.set_caption("Snake Game")
 
 sn = 10
 sn_speed = 15
+
+clock = pygame.time.Clock()
 
 score = 0
 
@@ -66,7 +69,7 @@ def loop():
             if event.type == pygame.KEDOWN:
                 if event.key == pygame.K_q:
                     gameOver = True
-                    gameClose = False
+                    gameClose = True
                 if event.key == pygame.K_c:
                     loop()
 
@@ -112,3 +115,11 @@ def loop():
             foodx = round(random.randrange(0, win_width - sn) / 10.0) * 10.0
             foody = round(random.randrange(0, win_height - sn) / 10.0) * 10.0
             sn_length += 1
+
+        clock.tick(sn_speed)
+
+    pygame.quit()
+    quit()
+
+
+loop()
