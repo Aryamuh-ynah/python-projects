@@ -10,6 +10,8 @@ grey = (200, 200, 200)
 green = (0, 255, 0)
 yellow = (255, 255, 0)
 black = (0, 0, 0)
+white = (255, 255, 255)
+dark_grey = (40, 40, 40)
 
 win_width = 900
 win_height = 600
@@ -19,6 +21,7 @@ pygame.display.set_caption("Snake Game")
 
 sn = 10
 sn_speed = 15
+border_thickness = 10          # Border thickness
 
 clock = pygame.time.Clock()
 
@@ -28,7 +31,7 @@ score_font = pygame.font.SysFont("comicsansms", 25)
 
 def user_score(score):
     value = score_font.render("Your Score: " + str(score), True, yellow)
-    window.blit(value, [10, 10])
+    window.blit(value, [20, 15])
 
 
 def game_snake(sn, sn_len_list):
@@ -39,6 +42,17 @@ def game_snake(sn, sn_len_list):
 def message(text, color):
     mesg = font.render(text, True, color)
     window.blit(mesg, [win_width / 6, win_height / 3])
+
+
+def draw_border():
+    # Outer border
+    pygame.draw.rect(window, white, [0, 0, win_width, win_height], border_thickness)
+    
+    # Optional: darker inner line for better look
+    pygame.draw.rect(window, dark_grey, 
+                     [border_thickness, border_thickness, 
+                      win_width - 2*border_thickness, 
+                      win_height - 2*border_thickness], 2)
 
 
 def game_loop():
@@ -53,14 +67,16 @@ def game_loop():
     sn_length = 1
     sn_list = []
 
-    foodx = round(random.randrange(0, win_width - sn) / 10.0) * 10.0
-    foody = round(random.randrange(0, win_height - sn) / 10.0) * 10.0
+    # Food should spawn inside the border
+    foodx = round(random.randrange(border_thickness, win_width - sn - border_thickness) / 10.0) * 10.0
+    foody = round(random.randrange(border_thickness, win_height - sn - border_thickness) / 10.0) * 10.0
 
     while not game_over:
 
         # ---------- Game Over Screen ----------
         while game_close:
             window.fill(black)
+            draw_border()
             message("You Lost! Press C-Play Again or Q-Quit", red)
             user_score(sn_length - 1)
             pygame.display.update()
@@ -74,7 +90,7 @@ def game_loop():
                         game_over = True
                         game_close = False
                     if event.key == pygame.K_c:
-                        game_loop()  # Restart the game
+                        game_loop()
 
         # ---------- Event Handling ----------
         for event in pygame.event.get():
@@ -94,14 +110,18 @@ def game_loop():
                     y1_change = sn
                     x1_change = 0
 
-        # ---------- Boundary Check ----------
-        if x1 >= win_width or x1 < 0 or y1 >= win_height or y1 < 0:
+        # ---------- Boundary Check (with border) ----------
+        if (x1 >= win_width - border_thickness or 
+            x1 < border_thickness or 
+            y1 >= win_height - border_thickness or 
+            y1 < border_thickness):
             game_close = True
 
         x1 += x1_change
         y1 += y1_change
 
         window.fill(grey)
+        draw_border()                                   # Draw the border every frame
         pygame.draw.rect(window, green, [foodx, foody, sn, sn])
 
         # Update snake body
@@ -123,8 +143,8 @@ def game_loop():
 
         # ---------- Food Collision ----------
         if x1 == foodx and y1 == foody:
-            foodx = round(random.randrange(0, win_width - sn) / 10.0) * 10.0
-            foody = round(random.randrange(0, win_height - sn) / 10.0) * 10.0
+            foodx = round(random.randrange(border_thickness, win_width - sn - border_thickness) / 10.0) * 10.0
+            foody = round(random.randrange(border_thickness, win_height - sn - border_thickness) / 10.0) * 10.0
             sn_length += 1
 
         clock.tick(sn_speed)
