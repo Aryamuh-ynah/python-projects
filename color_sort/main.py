@@ -4,10 +4,11 @@ from config import *
 
 pygame.init()
 screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
-pygame.display.set_caption("Color Sort Puzzle - Step 3")
+pygame.display.set_caption("Color Sort Puzzle")
 clock = pygame.time.Clock()
 font = pygame.font.SysFont("comicsansms", 32)
 small_font = pygame.font.SysFont("comicsansms", 24)
+big_font = pygame.font.SysFont("comicsansms", 48)
 
 def draw_bottle(surface, x, y, colors, selected=False):
     if selected:
@@ -25,7 +26,7 @@ def draw_bottle(surface, x, y, colors, selected=False):
     pygame.draw.rect(surface, WHITE, neck_rect, border_radius=6)
     pygame.draw.rect(surface, BLACK, neck_rect, 3, border_radius=6)
 
-    # Liquid levels (bottom → top)
+    # Liquid levels
     for i, color_name in enumerate(colors):
         color = COLOR_MAP.get(color_name, GRAY)
         level_y = y + BOTTLE_HEIGHT - (i + 1) * LEVEL_HEIGHT
@@ -40,26 +41,19 @@ def get_bottle_index(mouse_pos, bottle_positions):
     return None
 
 def can_pour(source, target):
-    """Check if we can pour from source bottle to target bottle"""
-    if not source:  # source is empty
+    if not source:
         return False
-    if len(target) >= MAX_LEVELS:  # target is full
+    if len(target) >= MAX_LEVELS:
         return False
-    if not target:  # target is empty → always allowed
+    if not target:
         return True
-    # Top colors must match
     return source[-1] == target[-1]
 
 def pour(source, target):
-    """
-    Pour as many units as possible from source to target.
-    Returns the new source and target lists.
-    """
     if not can_pour(source, target):
         return source, target
 
     color = source[-1]
-    # How many units of this color are on top of source
     amount = 0
     for c in reversed(source):
         if c == color:
@@ -67,26 +61,37 @@ def pour(source, target):
         else:
             break
 
-    # How much space is left in target
     space = MAX_LEVELS - len(target)
     pour_amount = min(amount, space)
 
-    # Perform the pour
     for _ in range(pour_amount):
         target.append(source.pop())
 
     return source, target
 
-def main():
-    # Example level (bottom → top)
-    bottles = [
-        ["red", "blue", "green", "yellow"],
-        ["blue", "red"],
-        ["green", "yellow", "blue"],
+def is_win(bottles):
+    """Return True if every bottle is empty or contains only one color"""
+    for bottle in bottles:
+        if len(bottle) == 0:
+            continue
+        if len(set(bottle)) > 1:  # more than one unique color
+            return False
+    return True
+
+def create_level():
+    """A nice solvable level"""
+    return [
+        ["red", "blue", "green", "red"],
+        ["blue", "green", "yellow", "blue"],
+        ["green", "yellow", "red", "yellow"],
+        ["yellow", "red", "blue", "green"],
         [],
-        ["orange", "purple", "pink"],
-        ["cyan", "orange"],
+        [],
     ]
+
+def main():
+    bottles = create_level()
+    moves = 0
 
     # Bottle positions
     start_x = 80
@@ -98,6 +103,7 @@ def main():
         bottle_positions.append((x, bottle_y))
 
     selected = None
+    won = False
 
     running = True
     while running:
@@ -107,43 +113,59 @@ def main():
             if event.type == pygame.QUIT:
                 running = False
 
-            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_r:  # Restart
+                    bottles = create_level()
+                    selected = None
+                    won = False
+                    moves = 0
+
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and not won:
                 clicked = get_bottle_index(event.pos, bottle_positions)
 
                 if clicked is not None:
                     if selected is None:
-                        # Select source bottle (only if it has liquid)
                         if bottles[clicked]:
                             selected = clicked
                     elif selected == clicked:
-                        # Deselect
                         selected = None
                     else:
-                        # Try to pour
                         source = bottles[selected]
                         target = bottles[clicked]
 
                         if can_pour(source, target):
-                            new_source, new_target = pour(source[:], target[:])  # copy lists
+                            new_source, new_target = pour(source[:], target[:])
                             bottles[selected] = new_source
                             bottles[clicked] = new_target
+                            moves += 1
 
-                        selected = None  # always deselect after attempt
+                            if is_win(bottles):
+                                won = True
+
+                        selected = None
 
         # ========== DRAW ==========
         screen.fill(BACKGROUND)
 
         # Title
         title = font.render("Color Sort Puzzle", True, WHITE)
-        screen.blit(title, (WINDOW_WIDTH // 2 - title.get_width() // 2, 30))
+        screen.blit(title, (WINDOW_WIDTH // 2 - title.get_width() // 2, 25))
 
-        # Instruction
-        if selected is None:
+        # Moves
+        moves_text = small_font.render(f"Moves: {moves}", True, (200, 200, 200))
+        screen.blit(moves_text, (30, 30))
+
+        # Instruction / Win message
+        if won:
+            text = "YOU WIN!  Press R to Restart"
+            color = (100, 255, 100)
+        elif selected is None:
             text = "Click a bottle to select"
             color = (180, 180, 180)
         else:
             text = "Click another bottle to pour"
             color = (255, 255, 100)
+
         instruction = small_font.render(text, True, color)
         screen.blit(instruction, (WINDOW_WIDTH // 2 - instruction.get_width() // 2, 80))
 
@@ -151,6 +173,18 @@ def main():
         for i, colors in enumerate(bottles):
             x, y = bottle_positions[i]
             draw_bottle(screen, x, y, colors, selected=(i == selected))
+
+        # Win overlay
+        if won:
+            overlay = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.SRCALPHA)
+            overlay.fill((0, 0, 0, 150))
+            screen.blit(overlay, (0, 0))
+
+            win_text = big_font.render("YOU WIN!", True, (100, 255, 120))
+            screen.blit(win_text, (WINDOW_WIDTH//2 - win_text.get_width()//2, WINDOW_HEIGHT//2 - 40))
+
+            restart_text = small_font.render("Press R to play again", True, WHITE)
+            screen.blit(restart_text, (WINDOW_WIDTH//2 - restart_text.get_width()//2, WINDOW_HEIGHT//2 + 30))
 
         pygame.display.flip()
 
