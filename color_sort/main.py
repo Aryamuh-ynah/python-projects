@@ -1,5 +1,6 @@
 import pygame
 import sys
+import copy
 from config import *
 
 pygame.init()
@@ -15,18 +16,15 @@ def draw_bottle(surface, x, y, colors, selected=False):
         glow_rect = pygame.Rect(x - 8, y - 8, BOTTLE_WIDTH + 16, BOTTLE_HEIGHT + 16)
         pygame.draw.rect(surface, (255, 255, 100), glow_rect, border_radius=16)
 
-    # Bottle body
     body_rect = pygame.Rect(x, y + BOTTLE_NECK_HEIGHT, BOTTLE_WIDTH, BOTTLE_HEIGHT - BOTTLE_NECK_HEIGHT)
     pygame.draw.rect(surface, WHITE, body_rect, border_radius=12)
     pygame.draw.rect(surface, BLACK, body_rect, 3, border_radius=12)
 
-    # Neck
     neck_x = x + (BOTTLE_WIDTH - BOTTLE_NECK_WIDTH) // 2
     neck_rect = pygame.Rect(neck_x, y, BOTTLE_NECK_WIDTH, BOTTLE_NECK_HEIGHT + 10)
     pygame.draw.rect(surface, WHITE, neck_rect, border_radius=6)
     pygame.draw.rect(surface, BLACK, neck_rect, 3, border_radius=6)
 
-    # Liquid levels
     for i, color_name in enumerate(colors):
         color = COLOR_MAP.get(color_name, GRAY)
         level_y = y + BOTTLE_HEIGHT - (i + 1) * LEVEL_HEIGHT
@@ -70,16 +68,19 @@ def pour(source, target):
     return source, target
 
 def is_win(bottles):
-    """Return True if every bottle is empty or contains only one color"""
+    """
+    Win only when every non-empty bottle is completely full
+    with a single color.
+    """
     for bottle in bottles:
         if len(bottle) == 0:
             continue
-        if len(set(bottle)) > 1:  # more than one unique color
+        # Must be full AND all same color
+        if len(bottle) != MAX_LEVELS or len(set(bottle)) > 1:
             return False
     return True
 
 def create_level():
-    """A nice solvable level"""
     return [
         ["red", "blue", "green", "red"],
         ["blue", "green", "yellow", "blue"],
@@ -89,11 +90,20 @@ def create_level():
         [],
     ]
 
+def draw_button(surface, text, x, y, width, height, active=True):
+    color = (70, 130, 180) if active else (80, 80, 80)
+    pygame.draw.rect(surface, color, (x, y, width, height), border_radius=10)
+    pygame.draw.rect(surface, WHITE, (x, y, width, height), 2, border_radius=10)
+    
+    txt = small_font.render(text, True, WHITE)
+    surface.blit(txt, (x + width//2 - txt.get_width()//2, y + height//2 - txt.get_height()//2))
+    return pygame.Rect(x, y, width, height)
+
 def main():
     bottles = create_level()
     moves = 0
+    history = []               # for undo
 
-    # Bottle positions
     start_x = 80
     gap = 40
     bottle_y = 220
@@ -119,30 +129,49 @@ def main():
                     selected = None
                     won = False
                     moves = 0
+                    history = []
+                if event.key == pygame.K_u and history and not won:  # Undo with keyboard
+                    bottles = history.pop()
+                    moves = max(0, moves - 1)
+                    selected = None
 
-            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and not won:
-                clicked = get_bottle_index(event.pos, bottle_positions)
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                mouse_pos = event.pos
 
-                if clicked is not None:
-                    if selected is None:
-                        if bottles[clicked]:
-                            selected = clicked
-                    elif selected == clicked:
-                        selected = None
-                    else:
-                        source = bottles[selected]
-                        target = bottles[clicked]
+                # Check Undo button
+                undo_rect = pygame.Rect(WINDOW_WIDTH - 140, 25, 110, 40)
+                if undo_rect.collidepoint(mouse_pos) and history and not won:
+                    bottles = history.pop()
+                    moves = max(0, moves - 1)
+                    selected = None
+                    continue
 
-                        if can_pour(source, target):
-                            new_source, new_target = pour(source[:], target[:])
-                            bottles[selected] = new_source
-                            bottles[clicked] = new_target
-                            moves += 1
+                if not won:
+                    clicked = get_bottle_index(mouse_pos, bottle_positions)
 
-                            if is_win(bottles):
-                                won = True
+                    if clicked is not None:
+                        if selected is None:
+                            if bottles[clicked]:
+                                selected = clicked
+                        elif selected == clicked:
+                            selected = None
+                        else:
+                            source = bottles[selected]
+                            target = bottles[clicked]
 
-                        selected = None
+                            if can_pour(source, target):
+                                # Save state before pouring
+                                history.append(copy.deepcopy(bottles))
+
+                                new_source, new_target = pour(source[:], target[:])
+                                bottles[selected] = new_source
+                                bottles[clicked] = new_target
+                                moves += 1
+
+                                if is_win(bottles):
+                                    won = True
+
+                            selected = None
 
         # ========== DRAW ==========
         screen.fill(BACKGROUND)
@@ -154,6 +183,10 @@ def main():
         # Moves
         moves_text = small_font.render(f"Moves: {moves}", True, (200, 200, 200))
         screen.blit(moves_text, (30, 30))
+
+        # Undo Button
+        can_undo = len(history) > 0 and not won
+        draw_button(screen, "Undo (U)", WINDOW_WIDTH - 140, 25, 110, 40, active=can_undo)
 
         # Instruction / Win message
         if won:
@@ -167,7 +200,7 @@ def main():
             color = (255, 255, 100)
 
         instruction = small_font.render(text, True, color)
-        screen.blit(instruction, (WINDOW_WIDTH // 2 - instruction.get_width() // 2, 80))
+        screen.blit(instruction, (WINDOW_WIDTH // 2 - instruction.get_width() // 2, 90))
 
         # Draw bottles
         for i, colors in enumerate(bottles):
