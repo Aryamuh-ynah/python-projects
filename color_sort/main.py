@@ -13,10 +13,10 @@ big_font = pygame.font.SysFont("comicsansms", 48)
 
 # ====================== LEVELS ======================
 LEVELS = [
-    # Level 1 - Easy
+    # Level 1 - Easy (2 colors)
     [
-        ["red", "blue", "red"],
-        ["blue", "red", "blue"],
+        ["red", "blue", "red", "blue"],
+        ["blue", "red", "blue", "red"],
         [],
         [],
     ],
@@ -31,25 +31,14 @@ LEVELS = [
     ],
     # Level 3
     [
-        ["red", "green", "blue", "red"],
-        ["green", "blue", "yellow", "green"],
-        ["blue", "yellow", "red", "blue"],
-        ["yellow", "red", "green", "yellow"],
+        ["red", "green", "blue", "yellow"],
+        ["green", "blue", "yellow", "red"],
+        ["blue", "yellow", "red", "green"],
+        ["yellow", "red", "green", "blue"],
         [],
         [],
     ],
     # Level 4
-    [
-        ["red", "blue", "green", "yellow"],
-        ["blue", "green", "yellow", "red"],
-        ["green", "yellow", "red", "blue"],
-        ["yellow", "red", "blue", "green"],
-        ["orange", "purple", "orange"],
-        ["purple", "orange", "purple"],
-        [],
-        [],
-    ],
-    # Level 5 - Harder
     [
         ["red", "blue", "green", "yellow"],
         ["blue", "green", "yellow", "orange"],
@@ -57,6 +46,19 @@ LEVELS = [
         ["yellow", "orange", "purple", "red"],
         ["orange", "purple", "red", "blue"],
         ["purple", "red", "blue", "green"],
+        [],
+        [],
+    ],
+    # Level 5
+    [
+        ["red", "blue", "green", "yellow"],
+        ["blue", "green", "yellow", "orange"],
+        ["green", "yellow", "orange", "purple"],
+        ["yellow", "orange", "purple", "pink"],
+        ["orange", "purple", "pink", "cyan"],
+        ["purple", "pink", "cyan", "red"],
+        ["pink", "cyan", "red", "blue"],
+        ["cyan", "red", "blue", "green"],
         [],
         [],
     ],
