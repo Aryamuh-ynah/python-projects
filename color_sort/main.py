@@ -1,6 +1,7 @@
 import pygame
 import sys
 import copy
+import random
 from config import *
 
 pygame.init()
@@ -11,58 +12,50 @@ font = pygame.font.SysFont("comicsansms", 32)
 small_font = pygame.font.SysFont("comicsansms", 24)
 big_font = pygame.font.SysFont("comicsansms", 48)
 
-# ====================== LEVELS ======================
-LEVELS = [
-    # Level 1 - Easy (2 colors)
-    [
-        ["red", "blue", "red", "blue"],
-        ["blue", "red", "blue", "red"],
-        [],
-        [],
-    ],
-    # Level 2
-    [
-        ["red", "blue", "green", "red"],
-        ["blue", "green", "yellow", "blue"],
-        ["green", "yellow", "red", "yellow"],
-        ["yellow", "red", "blue", "green"],
-        [],
-        [],
-    ],
-    # Level 3
-    [
-        ["red", "green", "blue", "yellow"],
-        ["green", "blue", "yellow", "red"],
-        ["blue", "yellow", "red", "green"],
-        ["yellow", "red", "green", "blue"],
-        [],
-        [],
-    ],
-    # Level 4
-    [
-        ["red", "blue", "green", "yellow"],
-        ["blue", "green", "yellow", "orange"],
-        ["green", "yellow", "orange", "purple"],
-        ["yellow", "orange", "purple", "red"],
-        ["orange", "purple", "red", "blue"],
-        ["purple", "red", "blue", "green"],
-        [],
-        [],
-    ],
-    # Level 5
-    [
-        ["red", "blue", "green", "yellow"],
-        ["blue", "green", "yellow", "orange"],
-        ["green", "yellow", "orange", "purple"],
-        ["yellow", "orange", "purple", "pink"],
-        ["orange", "purple", "pink", "cyan"],
-        ["purple", "pink", "cyan", "red"],
-        ["pink", "cyan", "red", "blue"],
-        ["cyan", "red", "blue", "green"],
-        [],
-        [],
-    ],
+# ====================== LEVEL SETTINGS ======================
+# (number_of_colors, number_of_empty_bottles)
+LEVEL_CONFIG = [
+    (2, 2),   # Level 1 - Easy
+    (4, 2),   # Level 2
+    (4, 2),   # Level 3
+    (6, 2),   # Level 4
+    (8, 2),   # Level 5
 ]
+
+ALL_COLORS = ["red", "blue", "green", "yellow", "orange", "purple", "pink", "cyan"]
+
+def generate_level(num_colors, num_empty):
+    """Generate a random but solvable level"""
+    colors = ALL_COLORS[:num_colors]
+    
+    # Create all color units (MAX_LEVELS of each color)
+    units = []
+    for color in colors:
+        units.extend([color] * MAX_LEVELS)
+    
+    # Shuffle the units
+    random.shuffle(units)
+    
+    # Create bottles
+    total_bottles = num_colors + num_empty
+    bottles = [[] for _ in range(total_bottles)]
+    
+    # Distribute the units randomly into the non-empty bottles
+    bottle_indices = list(range(num_colors))  # only fill first num_colors bottles
+    random.shuffle(bottle_indices)
+    
+    i = 0
+    for unit in units:
+        # Find a bottle that still has space
+        while len(bottles[bottle_indices[i % num_colors]]) >= MAX_LEVELS:
+            i += 1
+        bottles[bottle_indices[i % num_colors]].append(unit)
+        i += 1
+    
+    # Final shuffle of bottle order
+    random.shuffle(bottles)
+    
+    return bottles
 
 def draw_bottle(surface, x, y, colors, selected=False):
     if selected:
@@ -121,7 +114,6 @@ def pour(source, target):
     return source, target
 
 def is_win(bottles):
-    """Win only when every non-empty bottle is completely full with one color"""
     for bottle in bottles:
         if len(bottle) == 0:
             continue
@@ -139,19 +131,19 @@ def draw_button(surface, text, x, y, width, height, active=True):
     return pygame.Rect(x, y, width, height)
 
 def get_bottle_positions(num_bottles):
-    """Center the bottles nicely"""
-    total_width = num_bottles * BOTTLE_WIDTH + (num_bottles - 1) * 35
-    start_x = (WINDOW_WIDTH - total_width) // 2
+    total_width = num_bottles * BOTTLE_WIDTH + (num_bottles - 1) * 30
+    start_x = max(20, (WINDOW_WIDTH - total_width) // 2)
     bottle_y = 230
     positions = []
     for i in range(num_bottles):
-        x = start_x + i * (BOTTLE_WIDTH + 35)
+        x = start_x + i * (BOTTLE_WIDTH + 30)
         positions.append((x, bottle_y))
     return positions
 
 def main():
     current_level = 0
-    bottles = copy.deepcopy(LEVELS[current_level])
+    num_colors, num_empty = LEVEL_CONFIG[current_level]
+    bottles = generate_level(num_colors, num_empty)
     moves = 0
     history = []
 
@@ -169,8 +161,9 @@ def main():
                 running = False
 
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_r:  # Restart current level
-                    bottles = copy.deepcopy(LEVELS[current_level])
+                if event.key == pygame.K_r:  # Restart current level (new random)
+                    num_colors, num_empty = LEVEL_CONFIG[current_level]
+                    bottles = generate_level(num_colors, num_empty)
                     selected = None
                     won = False
                     level_complete = False
@@ -178,10 +171,11 @@ def main():
                     history = []
                     bottle_positions = get_bottle_positions(len(bottles))
 
-                if event.key == pygame.K_n:  # Next level (for testing)
-                    if current_level < len(LEVELS) - 1:
+                if event.key == pygame.K_n:  # Next level
+                    if current_level < len(LEVEL_CONFIG) - 1:
                         current_level += 1
-                        bottles = copy.deepcopy(LEVELS[current_level])
+                        num_colors, num_empty = LEVEL_CONFIG[current_level]
+                        bottles = generate_level(num_colors, num_empty)
                         selected = None
                         won = False
                         level_complete = False
@@ -189,7 +183,7 @@ def main():
                         history = []
                         bottle_positions = get_bottle_positions(len(bottles))
 
-                if event.key == pygame.K_u and history and not won:  # Undo
+                if event.key == pygame.K_u and history and not won:
                     bottles = history.pop()
                     moves = max(0, moves - 1)
                     selected = None
@@ -205,13 +199,14 @@ def main():
                     selected = None
                     continue
 
-                # Next Level button (only when level is complete)
+                # Next Level button
                 if level_complete:
                     next_rect = pygame.Rect(WINDOW_WIDTH//2 - 80, WINDOW_HEIGHT//2 + 80, 160, 45)
                     if next_rect.collidepoint(mouse_pos):
-                        if current_level < len(LEVELS) - 1:
+                        if current_level < len(LEVEL_CONFIG) - 1:
                             current_level += 1
-                            bottles = copy.deepcopy(LEVELS[current_level])
+                            num_colors, num_empty = LEVEL_CONFIG[current_level]
+                            bottles = generate_level(num_colors, num_empty)
                             selected = None
                             won = False
                             level_complete = False
@@ -249,19 +244,15 @@ def main():
         # ========== DRAW ==========
         screen.fill(BACKGROUND)
 
-        # Title + Level
         title = font.render(f"Color Sort - Level {current_level + 1}", True, WHITE)
         screen.blit(title, (WINDOW_WIDTH // 2 - title.get_width() // 2, 20))
 
-        # Moves
         moves_text = small_font.render(f"Moves: {moves}", True, (200, 200, 200))
         screen.blit(moves_text, (30, 30))
 
-        # Undo Button
         can_undo = len(history) > 0 and not won
         draw_button(screen, "Undo (U)", WINDOW_WIDTH - 140, 25, 110, 40, active=can_undo)
 
-        # Instruction
         if level_complete:
             text = "Level Complete!"
             color = (100, 255, 100)
@@ -275,28 +266,26 @@ def main():
         instruction = small_font.render(text, True, color)
         screen.blit(instruction, (WINDOW_WIDTH // 2 - instruction.get_width() // 2, 70))
 
-        # Draw bottles
         for i, colors in enumerate(bottles):
             x, y = bottle_positions[i]
             draw_bottle(screen, x, y, colors, selected=(i == selected))
 
-        # Level Complete / Win overlay
         if level_complete:
             overlay = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.SRCALPHA)
             overlay.fill((0, 0, 0, 160))
             screen.blit(overlay, (0, 0))
 
-            if current_level == len(LEVELS) - 1:
+            if current_level == len(LEVEL_CONFIG) - 1:
                 win_text = big_font.render("YOU BEAT THE GAME!", True, (100, 255, 120))
             else:
                 win_text = big_font.render("LEVEL COMPLETE!", True, (100, 255, 120))
 
             screen.blit(win_text, (WINDOW_WIDTH//2 - win_text.get_width()//2, WINDOW_HEIGHT//2 - 50))
 
-            if current_level < len(LEVELS) - 1:
+            if current_level < len(LEVEL_CONFIG) - 1:
                 draw_button(screen, "Next Level", WINDOW_WIDTH//2 - 80, WINDOW_HEIGHT//2 + 80, 160, 45)
             else:
-                restart_text = small_font.render("Press R to play again from Level 1", True, WHITE)
+                restart_text = small_font.render("Press R to play again", True, WHITE)
                 screen.blit(restart_text, (WINDOW_WIDTH//2 - restart_text.get_width()//2, WINDOW_HEIGHT//2 + 50))
 
         pygame.display.flip()
