@@ -1,4 +1,6 @@
 import cv2
+
+
 image = cv2.imread("phase1/test.png")
 
 if image is not None:
