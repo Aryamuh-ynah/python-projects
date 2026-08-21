@@ -14,3 +14,6 @@ if img is not None:
     cv2.imshow("Image with Line", img)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
+
+else:
+    print("Error: Image not found or unable to load.")
