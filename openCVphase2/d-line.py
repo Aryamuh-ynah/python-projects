@@ -9,7 +9,7 @@ if img is not None:
     color = (225, 0, 0)  # Blue color in BGR
     thikness = 2
 
-    cv2.line(img, p1, p2, color, thickness)
+    cv2.line(img, p1, p2, color, thikness)
 
     cv2.imshow("Image with Line", img)
     cv2.waitKey(0)
