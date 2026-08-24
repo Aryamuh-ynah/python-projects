@@ -47,7 +47,7 @@ with mss() as sct:
 dim = (width, height)
 fourcc = cv2.VideoWriter_fourcc(*'mp4v')
 output = cv2.VideoWriter("/home/humayra/test.mp4", fourcc, 20.0, dim)
-duration = 10  # seconds
+duration = 30 # seconds
 end_time = time.time() + duration
 print("Recording started...")
 with mss() as sct:
